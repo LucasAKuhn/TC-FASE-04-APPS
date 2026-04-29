@@ -10,6 +10,15 @@ from dotenv import load_dotenv
 from functools import wraps
 import logging
 
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+
 # Configura o logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -18,6 +27,29 @@ log = logging.getLogger(__name__)
 load_dotenv() 
 
 app = Flask(__name__)
+
+# --- OpenTelemetry Config ---
+otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+service_name = os.getenv("OTEL_SERVICE_NAME", "targeting-service")
+
+if otel_endpoint:
+    resource = Resource.create({"service.name": service_name})
+    provider = TracerProvider(resource=resource)
+    
+    if not otel_endpoint.endswith("/v1/traces"):
+        otel_endpoint = f"{otel_endpoint.rstrip('/')}/v1/traces"
+
+    exporter = OTLPSpanExporter(endpoint=otel_endpoint)
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    trace.set_tracer_provider(provider)
+
+    FlaskInstrumentor().instrument_app(app)
+    RequestsInstrumentor().instrument()
+    Psycopg2Instrumentor().instrument()
+    log.info(f"OpenTelemetry ativado. Exportando para {otel_endpoint}")
+else:
+    log.warning("OTEL_EXPORTER_OTLP_ENDPOINT não definido. Traces desabilitados.")
+
 
 # --- Configuração ---
 DATABASE_URL = os.getenv("DATABASE_URL")
