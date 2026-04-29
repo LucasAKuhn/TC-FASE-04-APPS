@@ -17,7 +17,7 @@ permissions:
 env:
   APP_NAME: auth-service
   AWS_REGION: ${{ vars.AWS_REGION }}
-  GO_VERSION: '1.24'
+  GO_VERSION: '1.23'
 
 jobs:
   # Job 1: Testes e Análise Estática (SAST)
