@@ -47,7 +47,7 @@ jobs:
       - name: 🔍 Linter (golangci-lint)
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
+          version: v1.61.0
           working-directory: ${{ env.APP_NAME }}
           args: --timeout=3m --out-format=colored-line-number
 

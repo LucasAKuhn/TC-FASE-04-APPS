@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib" // ALTERADO: de v4 para v5
+	_ "github.com/jackc/pgx/v5/stdlib" // ALTERADO: de v4 para v5 para resolver cve
 	"github.com/joho/godotenv"
 )
 
