@@ -1,0 +1,18 @@
+# ---- build stage
+FROM golang:1.24-alpine AS build
+WORKDIR /src
+ENV GOPROXY=https://proxy.golang.org,direct
+RUN apk add --no-cache ca-certificates git
+COPY go.mod ./
+COPY . .
+RUN go mod tidy
+RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/app ./
+
+# ---- runtime stage
+FROM gcr.io/distroless/static:nonroot
+WORKDIR /
+COPY --from=build /out/app /app
+EXPOSE 8001
+USER nonroot:nonroot
+ENTRYPOINT ["/app"]

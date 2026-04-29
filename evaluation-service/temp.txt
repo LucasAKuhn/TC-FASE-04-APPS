@@ -1,0 +1,1 @@
+teste para demonstrar o gitops e argocd
