@@ -17,7 +17,7 @@ permissions:
 env:
   APP_NAME: auth-service
   AWS_REGION: ${{ vars.AWS_REGION }}
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.24'
 
 jobs:
   # Job 1: Testes e Análise Estática (SAST)
@@ -45,11 +45,11 @@ jobs:
       #  run: go build -v ./...
 
       - name: 🔍 Linter (golangci-lint)
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           working-directory: ${{ env.APP_NAME }}
-          args: --timeout=3m
+          args: --timeout=3m --out-format=colored-line-number
 
       - name: 🧪 Testes Unitários
         run: go test -v ./... || echo "Nenhum teste encontrado, prosseguindo."
@@ -58,7 +58,7 @@ jobs:
       - name: 🛡️ SAST (Gosec)
         uses: securego/gosec@master
         with:
-          args: -severity high -exclude-dir=tests ./... 
+          args: -severity high -exclude-dir=tests ./...  
 
       - name: Debug Path
         run: |
