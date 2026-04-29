@@ -50,6 +50,7 @@ jobs:
           version: v1.61.0
           working-directory: ${{ env.APP_NAME }}
           args: --timeout=3m --out-format=colored-line-number
+          skip-cache: true
 
       - name: 🧪 Testes Unitários
         run: go test -v ./... || echo "Nenhum teste encontrado, prosseguindo."
