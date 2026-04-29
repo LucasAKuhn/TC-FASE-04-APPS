@@ -8,4 +8,4 @@
 # CVE-2023-12345  # Not exploitable - we don't use feature X
 
 # Ignorando CVE-2026-32286 pois não há fix disponível para pgproto3/v2 (EOL)
-CVE-2026-32286
+#CVE-2026-32286
