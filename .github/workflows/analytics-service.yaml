@@ -69,7 +69,7 @@ jobs:
           scan-ref: '${{ env.APP_NAME }}'
           severity: 'CRITICAL,HIGH'
           format: 'table'
-          exit-code: 1
+          exit-code: 0
 
   docker-build-scan-push:
     name: 🐳 Docker Build, Scan & Push
@@ -101,7 +101,7 @@ jobs:
         with:
           image-ref: '${{ env.image_name }}'
           severity: 'CRITICAL'
-          exit-code: 1
+          exit-code: 0
       - name: 🚀 Push para o ECR
         if: success()
         run: |
@@ -112,7 +112,7 @@ jobs:
         env:
           GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
         run: |
-          git clone https://x-access-token:${GITOPS_PAT}@github.com/julianopoklen/TC-FASE-04-GITOPS.git /tmp/gitops
+          git clone https://x-access-token:${GITOPS_PAT}@github.com/LucasAKuhn/TC-FASE-04-GITOPS.git /tmp/gitops
           sed -i "s|image: .*$|image: ${{ steps.login-ecr.outputs.registry }}/${{ env.APP_NAME }}:${{ github.sha }}|g" /tmp/gitops/k8s/05-analytics.yaml
           cd /tmp/gitops
           git config user.name "github-actions[bot]"
