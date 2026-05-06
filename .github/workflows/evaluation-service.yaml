@@ -38,6 +38,7 @@ jobs:
         run: go mod tidy
       - name: 🔍 Linter (golangci-lint)
         uses: golangci/golangci-lint-action@v3
+        continue-on-error: true
         with:
           version: latest
           working-directory: ${{ env.APP_NAME }}

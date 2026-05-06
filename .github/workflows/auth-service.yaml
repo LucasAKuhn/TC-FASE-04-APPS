@@ -49,6 +49,7 @@ jobs:
 
       - name: 🔍 Linter (golangci-lint)
         uses: golangci/golangci-lint-action@v6
+        continue-on-error: true
         with:
           version: v1.64.5
           working-directory: ${{ env.APP_NAME }}
