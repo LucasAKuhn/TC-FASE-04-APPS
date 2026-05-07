@@ -44,7 +44,7 @@ func initTracer() *sdktrace.TracerProvider {
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
-			semconv.SchemaURL,
+			"",
 			semconv.ServiceName(serviceName),
 		),
 	)
