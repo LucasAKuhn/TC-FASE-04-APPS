@@ -2,7 +2,7 @@
 
 > Código-fonte dos 5 microsserviços do sistema ToggleMaster, com pipelines CI/CD DevSecOps integrados via GitHub Actions.
 
-**📦 Repositório GitOps (Manifestos K8s + Terraform):** [TC-FASE-04-GITOPS](https://github.com/julianopoklen/TC-FASE-04-GITOPS)
+**📦 Repositório GitOps (Manifestos K8s + Terraform):** [TC-FASE-04-GITOPS](https://github.com/LucasAKuhn/TC-FASE-04-GITOPS)
 
 ---
 
@@ -121,7 +121,60 @@ As 5 pipelines serão acionadas automaticamente. Após a conclusão, o ArgoCD de
 
 ---
 
-## 📋 Tech Challenge — Fase 4
+## 🔭 Observabilidade e Instrumentação (Fase 4)
 
-**Projeto:** ToggleMaster — Observabilidade e Resiliência Ativa  
-**Deadline:** 12/05/2026
+Na Fase 4, todos os 5 microsserviços foram instrumentados para enviar dados de telemetria (traces, métricas e logs) via protocolo **OTLP** para um **OpenTelemetry Collector** centralizado, operando em modo gateway no namespace `monitoring` do cluster EKS.
+
+### Estratégia de Instrumentação por Linguagem
+
+A arquitetura poliglota do ToggleMaster exigiu abordagens distintas para cada runtime:
+
+| Linguagem | Serviços | Abordagem |
+| :--- | :--- | :--- |
+| **Go** | `auth-service`, `evaluation-service` | Instrumentação **explícita** com `go.opentelemetry.io/otel`. Uso do interceptador HTTP `otelhttp.NewHandler` para captura automática de spans em cada requisição, e propagação de contexto via `context.Context` para Distributed Tracing. |
+| **Python** | `flag-service`, `targeting-service`, `analytics-service` | **Auto-instrumentação** com `opentelemetry-instrumentation-flask`, `opentelemetry-instrumentation-requests` e `opentelemetry-instrumentation-psycopg2`/`botocore`. O SDK do OTel injeta spans automaticamente nos frameworks Flask, Requests e nos clientes de banco de dados. |
+
+### Variáveis de Ambiente (Injetadas via K8s ConfigMap/Deployment)
+
+Cada Deployment Kubernetes injeta as seguintes variáveis de ambiente do OpenTelemetry:
+
+| Variável | Descrição |
+| :--- | :--- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Endereço do OTel Collector (`otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4318`) |
+| `OTEL_SERVICE_NAME` | Nome do serviço para identificação nos traces (ex: `auth-service`) |
+| `OTEL_RESOURCE_ATTRIBUTES` | Atributos adicionais (ex: `service.namespace=toggle-master`) |
+
+### Stack de Observabilidade (Provisionada no Repo GitOps)
+
+Os dados de telemetria dos microsserviços são coletados e roteados pelo OTel Collector para os seguintes backends (todos provisionados via Terraform/Helm no repositório [TC-FASE-04-GITOPS](https://github.com/LucasAKuhn/TC-FASE-04-GITOPS)):
+
+```
+Microsserviços (OTLP) ──► OTel Collector (Gateway)
+                              ├──► Métricas ──► Prometheus (remote write)
+                              ├──► Logs     ──► Loki
+                              └──► Traces   ──► New Relic (OTLP HTTP)
+```
+
+| Componente | Função |
+| :--- | :--- |
+| **Prometheus** | Armazenamento e consulta de métricas de infraestrutura e aplicação |
+| **Loki** | Centralização e indexação de logs dos contêineres |
+| **Promtail** | DaemonSet que coleta logs de todos os pods via filesystem dos nodes |
+| **Grafana** | Visualização unificada — dashboards de métricas, logs e alertas |
+| **New Relic** | APM comercial — Distributed Tracing, Service Map e análise de performance |
+
+### Decisão Técnica: Por que New Relic?
+
+O **New Relic** foi escolhido como ferramenta de APM pois aceita dados diretamente via protocolo OTLP (OpenTelemetry Protocol) **sem necessidade de agente proprietário**. Isso permitiu manter a arquitetura padronizada: o OTel Collector envia os traces diretamente para o endpoint `https://otlp.nr-data.net:4318`, sem instalar nenhum componente adicional nos pods.
+
+### Alertas, Incidentes e Self-Healing
+
+| Funcionalidade | Ferramenta | Descrição |
+| :--- | :--- | :--- |
+| **Alerta Inteligente** | Grafana Alerting | Regra de alerta configurada para disparar em cenários de degradação (ex: alta taxa de erros HTTP 5xx) |
+| **Gestão de Incidentes** | PagerDuty | Integrado via Contact Point do Grafana (Events API v2) — incidentes são abertos automaticamente ao disparar alertas |
+| **ChatOps** | Discord / Slack | Notificação automática com detalhes do alerta enviada para canal do time |
+| **Self-Healing** | GitHub Actions | Workflow `self-healing.yml` acionado via `repository_dispatch` do Grafana — executa `kubectl rollout restart` automaticamente nos deployments do namespace `toggle-master` |
+
+---
+
